@@ -22,7 +22,7 @@ count = 0
 starting_folder = "start_save"
 
 
-# First class: a single image/person
+# First class: a single image
 class Person:
     # Only takes in height and width and automatically makes a random image of that size
     # Image is in the form of an array
@@ -39,6 +39,8 @@ class Person:
         self.height = height
         self.width = width
 
+    # Imports a person
+    # Takes in an array that makes an image
     def import_person(self, save):
         self.array = save
 
@@ -99,7 +101,7 @@ class Person:
         im = self.array.astype(np.uint8)
         # Converting from array to image
         im = Image.fromarray(im, mode = 'RGB')
-        # Showing image
+        # Saving image
         im.save(path)
 
 
@@ -114,10 +116,16 @@ class Population:
             # Append a image/person object to the list
             self.pop.append(Person(height, width))
 
+    # Imports a population from a save path
+    # Take in the string of a save path
     def import_population(self, save_paths):
+        # For the population size
         for i in range(pop_size):
+            # Open each save path
             with Image.open(save_paths[i]) as im:
+                # The array is the array of the image
                 array = np.asarray(im)
+                # Add that array to the population in the right spot
                 self.pop[i].array = array
 
     # Tests every image/person in the population and picks a list of parents
@@ -181,16 +189,24 @@ class Algorimth:
 
     # A function that saves the current run
     def save(self, folder_name):
+        # Makes a new folder
         os.mkdir(folder_name)
         count = 1
+        # For each person in the population
         for i in self.population.pop:
+            # Save as the fitness score and the number in the list it is
             i.download(f'{folder_name}/{i.fitness_test(self.target)}_{count}.jpg')
             count += 1
 
+    # Imports a full save
+    # Takes in the path for save folder
     def import_save(self, save_folder):
         save_paths = []
+        # For every item in the save folder
         for i in os.listdir(save_folder):
+            # Add the path to that item
             save_paths.append(f'{save_folder}/{i}')
+        # Add all those saves to the population
         self.population.import_population(save_paths)
 
 
@@ -216,9 +232,11 @@ if __name__ == "__main__":
 
     # For the amount of generations you want to have
     for i in range(num_of_gens):
+        # If the generation number is divisible by amount of generations you want between saves
         if count%save_per_gen == 0:
+            # Save the algorimth
             algorimth.save(f'generation_{count}')
-            count += 1
+        count += 1
         # Make a new generation
         algorimth.generation(parents_per_gen, mutations_per_gen, max_mutation_change)
 
@@ -227,6 +245,8 @@ if __name__ == "__main__":
     # Displaying the first image/person's score on the fitness test
     print(algorimth.population.pop[0].fitness_test(target))
 
+    # If they want to save at the end
     if save_at_end == True:
+        # Save the last generation as "end_save"
         algorimth.save('end_save')
 
