@@ -2,13 +2,13 @@ import numpy as np
 import random
 from PIL import Image
 import math
+import os
 
 
 # I defined these variables automatically here but you could take user input
 height = 16
 width = 16
 pop_size = 10
-parent_number = 3
 target_file_name = "banana.jpg"
 population_size = 100
 num_of_gens = 100
@@ -16,6 +16,10 @@ parents_per_gen = 5
 mutations_per_gen = 1
 # Must be bigger than 0 due to weird coding (line 70 & 74), might fix later
 max_mutation_change = 3
+save_per_gen = 999999
+save_at_end = True
+count = 0
+starting_folder = "start_save"
 
 
 # First class: a single image/person
@@ -34,6 +38,9 @@ class Person:
         # Saving the height and width values for later use
         self.height = height
         self.width = width
+
+    def import_person(self, save):
+        self.array = save
 
     # A test of how close this image is to a different image
     # Takes in a target in array format
@@ -86,6 +93,15 @@ class Person:
         # Showing image
         im.show()
 
+    # A function that downloads the image
+    def download(self, path):
+        # Necessary step to save the image correctly
+        im = self.array.astype(np.uint8)
+        # Converting from array to image
+        im = Image.fromarray(im, mode = 'RGB')
+        # Showing image
+        im.save(path)
+
 
 # Second class: a group of images/people
 class Population:
@@ -98,6 +114,12 @@ class Population:
             # Append a image/person object to the list
             self.pop.append(Person(height, width))
 
+    def import_population(self, save_paths):
+        for i in range(pop_size):
+            with Image.open(save_paths[i]) as im:
+                array = np.asarray(im)
+                self.pop[i].array = array
+
     # Tests every image/person in the population and picks a list of parents
     # Takes in target array and amount of parents needed
     def test(self, target, parent_amount):
@@ -108,7 +130,6 @@ class Population:
             # Append its fitness score to the scores list
             scores.append(1/i.fitness_test(target))
         # Picks all the parents according to the weights
-        # MUST FIX: LOW SCORES ARE GOOD, NOT HIGH
         parents = random.choices(self.pop, weights = scores, k = parent_amount)
         # Returns the list of parents
         return parents
@@ -158,10 +179,23 @@ class Algorimth:
         # Creates a new population from those parents
         self.population.mate(parents, self.pop_size, self.height, self.width, mutate_amount, max_change)
 
+    # A function that saves the current run
+    def save(self, folder_name):
+        os.mkdir(folder_name)
+        count = 1
+        for i in self.population.pop:
+            i.download(f'{folder_name}/{i.fitness_test(self.target)}_{count}.jpg')
+            count += 1
+
+    def import_save(self, save_folder):
+        save_paths = []
+        for i in os.listdir(save_folder):
+            save_paths.append(f'{save_folder}/{i}')
+        self.population.import_population(save_paths)
+
 
 # Name equals main thingy
-#if __name__ == "__main_":
-if True:
+if __name__ == "__main__":
     # Opening the target image
     with Image.open(target_file_name) as img:
         # Resizing to the correct dimesions
@@ -172,6 +206,8 @@ if True:
 
     # Initializing the algorimth
     algorimth = Algorimth(population_size, target, height, width)
+    if starting_folder != 'none':
+        algorimth.import_save(starting_folder)
 
     # Displaying the first image/person in the population
     algorimth.population.pop[0].display()
@@ -180,6 +216,9 @@ if True:
 
     # For the amount of generations you want to have
     for i in range(num_of_gens):
+        if count%save_per_gen == 0:
+            algorimth.save(f'generation_{count}')
+            count += 1
         # Make a new generation
         algorimth.generation(parents_per_gen, mutations_per_gen, max_mutation_change)
 
@@ -187,4 +226,7 @@ if True:
     algorimth.population.pop[0].display()
     # Displaying the first image/person's score on the fitness test
     print(algorimth.population.pop[0].fitness_test(target))
+
+    if save_at_end == True:
+        algorimth.save('end_save')
 
